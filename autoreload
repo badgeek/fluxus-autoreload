@@ -1,0 +1,64 @@
+(require mzlib/string) ;eval-string
+(require racket/file)  ;file->string
+
+(define time_previous 0)
+(define file_time_previous 0)
+ 
+
+ (define (call_on_interval func)
+      (let (
+             (time_now (time))
+          )
+     (cond 
+        (
+            (> (- time_now time_previous) 1.5) ;compare if test > 10
+            (func)
+            (set! time_previous time_now)
+        )
+    )
+     )
+ )
+
+ (define (is_changed path onfilechanged)
+    (let (
+    	     (file_path path)
+             (file_time_now (m_filetime path))
+          )
+     (cond 
+        (
+            (not (eqv? file_time_previous file_time_now))
+            (print "file changed reload")
+            (onfilechanged file_path)
+            (set! file_time_previous (file-or-directory-modify-seconds path))
+        )
+    )
+ )
+    ;(newline)
+)
+
+(define (check_file_and_reload)
+	(is_changed (m_homedir "/test.txt") on_file_changed)
+)
+
+
+(define (on_file_changed path)
+
+  	 (rm-task 'draw-task)
+     
+  	 (eval-string (file->string path))
+
+  	 (spawn-task 
+  	 	render
+  	 	'draw-task
+  	 )
+
+	 ;(spawn-task 
+	 ;	(lambda () 
+	 ;		(eval-string (string-append "((lambda ()" (file->string path) "))"))
+	 ;	) 
+	 ;	'draw-task
+	 ;)
+)
+
+ (spawn-task (lambda () (call_on_interval check_file_and_reload)) 'filemon-task)
+
